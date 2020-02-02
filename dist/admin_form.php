@@ -8,84 +8,106 @@
   // define variables and set to empty values
   $nameErr = $mobileErr = $packageErr = $dateErr = "";
   $name = $mobile = $package = $date = "";
+  $from_date = $to_date = "";
   $stat = array();
+  date_default_timezone_set('Asia/Dhaka');
 
   if ($_SERVER["REQUEST_METHOD"] == "POST") {
-  if (empty($_POST["name"])) {
-    $nameErr = "Name is required";
-    array_push($stat, $nameErr);
-  } else {
-    $name = test_input($_POST["name"]);
 
-    // check if name only contains letters and whitespace
-    if (!preg_match("/^[a-zA-Z ]*$/",$name)) {
-      $nameErr = "Only letters and white space allowed";
-      array_push($stat, $nameErr);
+      if (empty($_POST["name"])) {
+        $nameErr = "Name is required";
+        array_push($stat, $nameErr);
+      } else {
+        $name = test_input($_POST["name"]);
+
+        // check if name only contains letters and whitespace
+        if (!preg_match("/^[a-zA-Z ]*$/",$name)) {
+          $nameErr = "Only letters and white space allowed";
+          array_push($stat, $nameErr);
+        }
+      }
+
+      if (empty($_POST["mobile"])) {
+        $mobileErr = "mobile number is required";
+        array_push($stat, $mobileErr);
+      } else {
+        $mobile = test_input($_POST["mobile"]);
+
+        if(!preg_match("/^(?:\+88|01)?(?:\d{11}|\d{13})$/", $mobile)) {
+          $mobileErr = "Phone Number is not valid. valid phone number is like 01xxxxxxxxx";
+          array_push($stat, $mobileErr);
+        }
+      }
+
+      if (empty($_POST["package"])) {
+        $packageErr = "package selection required";
+        array_push($stat, $packageErr);
+      } else {
+        $package = test_input($_POST["package"]);
+      }
+
+      if (empty($_POST["date"])) {
+
+        $dateErr = "date is required";
+        array_push($stat, $dateErr);
+      
+      } else {
+      
+        $date = test_input($_POST["date"]);
+
+        $to_date = new DateTime($date);
+        $from_date = new DateTime(Date("Y-m-d"));
+        $diff = date_diff($from_date, $to_date);
+
+        if($diff->format("%R") == "-") {
+          $dateErr = "Date is invalid";
+          array_push($stat, $dateErr);
+        }
+
+        if($diff->format("%a") == "0") {
+          $dateErr = "Current date is unacceptable";
+          array_push($stat, $dateErr);
+        }
+      
+      }
+
+
+
+    if(empty($stat)) {
+        $servername = "localhost";
+        $username = "root";
+        $password = "";
+        $dbname = "test";
+
+        $conn = mysqli_connect($servername, $username, $password, $dbname);
+
+        if(!$conn) {
+          die("Connection failed: ".mysqli_connect_error());
+        }
+        
+        $sql = "insert into client (id, name, phone, package, from_date, to_date) values (NULL, '".$name."', '".$mobile."', '".$package."', '".$from_date->format("Y-m-d")."', '".$to_date->format("Y-m-d")."');";
+
+        if(mysqli_query($conn, $sql)) {
+
+          $days = $diff->format("%a days");
+          ?>
+              <script type="text/javascript">
+                alert("<?php echo 'You have selected '.$package.' plan for '.$days ?> and your user_id and password will be sent to you as message");
+              </script>
+          <?php
+        }
+
+        mysqli_close($conn);
+      }
     }
-  }
 
-  if (empty($_POST["mobile"])) {
-    $mobileErr = "mobile number is required";
-    array_push($stat, $mobileErr);
-  } else {
-    $mobile = test_input($_POST["mobile"]);
+      function test_input($data) {
+      $data = trim($data);
+      $data = stripslashes($data);
+      $data = htmlspecialchars($data);
+      return $data;
+      }
 
-    if(!preg_match("/^[0-9]{3}-[0-9]{4}-[0-9]{4}$/", $mobile)) {
-      $mobileErr = "Enter as like example";
-      array_push($stat, $mobileErr);
-    }
-  }
-
-  if (empty($_POST["package"])) {
-    $packageErr = "package selection required";
-    array_push($stat, $packageErr);
-  } else {
-    $package = test_input($_POST["package"]);
-  }
-
-  if (empty($_POST["date"])) {
-    $dateErr = "date is required";
-    array_push($stat, $dateErr);
-  } else {
-    $date = test_input($_POST["date"]);
-  }
-  }
-
-  function test_input($data) {
-  $data = trim($data);
-  $data = stripslashes($data);
-  $data = htmlspecialchars($data);
-  return $data;
-  }
-
-if(!empty($stat)) {
-    $servername = "localhost";
-    $username = "root";
-    $password = "";
-    $dbname = "test";
-
-    $conn = mysqli_connect($servername, $username, $password, $dbname);
-
-    if(!$conn) {
-      die("Connection failed: ".mysqli_connect_error());
-    }
-    // date_default_timezone_set("Asia/Dhaka");
-    // $from_date = date("")
-    // $sql = "insert into client values (NULL, '".$name"', '".$mobile."', )"
-} else {
-
-}
-
-date_default_timezone_set("Asia/Dhaka");
-
-$from_date = new DateTime();
-
-echo $name."<br/>";
-echo $mobile."<br/>";
-echo $package."<br/>";
-echo $date."<br/>";
-// echo $from_date."<br />";
-echo $from_date->diff($date)->format("%d days")."<br/>";
  ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -118,18 +140,9 @@ echo $from_date->diff($date)->format("%d days")."<br/>";
                                     <div class="card-header"><h3 class="text-center font-weight-light my-4">Create Account</h3></div>
                                     <div class="card-body">
 
-                                            <!-- <div class="form-row">
-                                                <div class="col-md-6">
-                                                    <div class="form-group"><label class="small mb-1" for="inputFirstName">First Name</label><input class="form-control py-4" id="inputFirstName" type="text" placeholder="Enter first name" /></div>
-                                                </div>
-                                                 <div class="col-md-6">
-                                                    <div class="form-group"><label class="small mb-1" for="inputLastName">Last Name</label><input class="form-control py-4" id="inputLastName" type="text" placeholder="Enter last name" /></div>
-                                                </div>
-                                            </div> -->
-
                                             <div class="form-group">
                                               <label class="small mb-1" for="inputPhoneNumber">Phone Number</label>
-                                              <input class="form-control py-4" id="inputPhoneNumber" name="mobile" type="tel" aria-describedby="phoneHelp" placeholder="Enter phone number, example. xxx-xxxx-xxxx" />
+                                              <input class="form-control py-4" id="inputPhoneNumber" name="mobile" type="tel" aria-describedby="phoneHelp" placeholder="ph. 01xxxxxxxxx" />
                                               <span class="error"><?php echo $mobileErr; ?></span>
                                             </div>
 
@@ -151,6 +164,7 @@ echo $from_date->diff($date)->format("%d days")."<br/>";
                                                       <br>
                                                       <div id="dropdown">
                                                         <select name="package">
+                                                          <option value="" disabled selected hidden>--select a plan--</option>
                                                           <option value="50mb">50mb</option>
                                                           <option value="100mb">100mb</option>
                                                           <option value="1gb">1gb</option>
@@ -162,7 +176,7 @@ echo $from_date->diff($date)->format("%d days")."<br/>";
                                                 </div>
                                                 <div class="col-md-6">
                                                     <div class="form-group">
-                                                      <label class="small mb-1" for="time">Time</label>
+                                                      <label class="small mb-1" for="time">Date</label>
                                                       <input class="form-control" id="time" name="date" type="date" placeholder="date"/>
                                                       <span class="error"><?php echo $dateErr; ?></span>
                                                     </div>
